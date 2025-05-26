@@ -1,0 +1,16 @@
+---
+- name: Copy and execute a script
+  hosts: all
+  tasks:
+    - name: Copy hello.sh
+      ansible.builtin.copy:
+        src: bin/hello.sh
+        dest: /tmp/hello.sh
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0700'
+
+    - name: Execute hello.sh
+      ansible.builtin.command: /tmp/hello.sh
+      changed_when: false
+...

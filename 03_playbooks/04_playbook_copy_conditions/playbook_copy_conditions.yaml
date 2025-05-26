@@ -1,0 +1,56 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Add PostgreSQL 15 REPO
+      yum:
+        name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+        state: present
+        disable_gpg_check: true
+      when: ansible_distribution == "Rocky"
+
+    - name: Disable built-in PostgreSQL module
+      command: dnf -qy module disable postgresql
+      when: ansible_distribution == "Rocky"
+
+    - name: Install Postgres on Rocky 
+      dnf:
+        name: 
+          - postgresql15
+          - postgresql15-server
+        state: present
+        disable_gpg_check: true
+      when: ansible_distribution == "Rocky"
+
+    - name: Initialize PostgreSQL (if not already initialized)
+      become_user: postgres
+      shell: /usr/pgsql-15/bin/initdb -D /var/lib/pgsql/15/data
+      args:
+        creates: /var/lib/pgsql/15/data/PG_VERSION
+      when: ansible_distribution == "Rocky"
+
+    - name: Start PostgreSQL manually as postgres user
+      become_user: postgres
+      shell: nohup /usr/pgsql-15/bin/postgres -D /var/lib/pgsql/15/data > /tmp/postgres.log 2>&1 &
+      args:
+        creates: /var/lib/pgsql/15/data/postmaster.pid
+      when: ansible_distribution == "Rocky"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: ansible_distribution == "Debian"
+
+    - name: Install NGINX on Debian
+      apt:
+        name: nginx
+        state: present
+      when: ansible_distribution == "Debian"
+      notify: Restart NGINX
+
+  handlers:
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted
+...
